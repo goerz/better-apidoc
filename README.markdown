@@ -59,7 +59,7 @@ modules. Note that if `<module_path>` contains a package and the `-s/--separate`
 is not given, the `module.rst` template will not be used.
 
 
-The addition of templates to `apidoc` addresses [Sphinx issue #9][]. That is, it
+The addition of templates to `apidoc` addresses [Sphinx issue #3545][]. That is, it
 is now possible to have a list of members with short summaries at the top of the
 API documentation that links to the more detailed information below.
 It is also directly addresses the demand for this feature expressed on
@@ -73,7 +73,7 @@ for an example template. These render to e.g.
 <http://qnet.readthedocs.io/en/latest/API/qnet.algebra.operator_algebra.html>
 
 
-[Sphinx issue #9]: https://github.com/sphinx-doc/sphinx/issues/9
+[Sphinx issue #3545]: https://github.com/sphinx-doc/sphinx/issues/3545
 [apidoc.py]: https://github.com/sphinx-doc/sphinx/blob/master/sphinx/apidoc.py
 [Stackoverflow]: http://stackoverflow.com/questions/29385564/customize-templates-for-sphinx-apidoc)
 [Jinja]: http://jinja.pocoo.org
