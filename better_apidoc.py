@@ -152,8 +152,8 @@ def _get_members(
     Args:
         obj: object resulting from importing a module or package
         typ: filter on members. If None, include all members. If one of
-            'function', 'class', 'exception', only include members of the
-            matching type
+            'function', 'class', 'exception', 'data', only include members of
+            the matching type
         include_imported: If True, also include members that are imports
         as_refs: If True, return ReST-formatted reference strings for all
             members, instead of just their names. In combinations with
@@ -166,8 +166,23 @@ def _get_members(
         public  members, as strings.
     """
     roles = {'function': 'func', 'module': 'mod', 'class': 'class',
-             'exception': 'exc', 'data': 'data', 'method': 'meth',
-             'attribute': 'attr', 'instanceattribute': 'attr'}
+             'exception': 'exc', 'data': 'data'}
+    # not included, because they cannot occur at modul level:
+    #   'method': 'meth', 'attribute': 'attr', 'instanceattribute': 'attr'
+
+    def check_typ(typ, obj, value):
+        """Check if obj.value is of the desired typ"""
+        documenter = get_documenter(value, obj)
+        if typ is None:
+            return True
+        if typ == getattr(documenter, 'objtype', None):
+            return True
+        if hasattr(documenter, 'directivetype'):
+            return roles[typ] == getattr(documenter, 'directivetype')
+
+    if typ is not None and typ not in roles:
+        raise ValueError("typ must be None or one of %s"
+                         % str(list(roles.keys())))
     items = []
     public = []
     all_list = getattr(obj, '__all__', [])
@@ -176,13 +191,13 @@ def _get_members(
             value = safe_getattr(obj, name)
         except AttributeError:
             continue
-        documenter = get_documenter(value, obj)
-        if typ is None or documenter.objtype == typ:
+        if check_typ(typ, obj, value):
             if in__all__ and name not in all_list:
                 continue
             if (include_imported or
                     getattr(value, '__module__', None) == obj.__name__):
                 if as_refs:
+                    documenter = get_documenter(value, obj)
                     role = roles.get(documenter.objtype, 'obj')
                     ref = _get_member_ref_str(name, obj=value, role=role)
                     items.append(ref)
