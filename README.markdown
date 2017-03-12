@@ -58,6 +58,22 @@ The `package.rst` template will be used when rendering any package. The
 modules. Note that if `<module_path>` contains a package and the `-s/--separate`
 is not given, the `module.rst` template will not be used.
 
+In some circumstances, special care must be taken when generating API
+documentation for modules that contain module data (e.g., constants). Since the
+template variables are determined from an import for the module (as opposed to
+parsing the module source code), there is no way to distinguish locally defined
+data from imported data. Module data will be considered imported (i.e., it will
+not show up in *data*, only in *member_imports*) unless one of the following two
+conditions is met:
+
+* the name of the data member appears in the `__all__` list of the module
+* the name of the data member appears in a list `__local_data__` of the
+  module. This list is a custom convention of the `better-apidoc` script.
+
+In cases where a data member appears in `__all__` but is not locally defined,
+the module may define a dictionary [`__imported_data__`][] that maps the name of the
+data member of a ReST-formatted reference string for `better-apidoc` to
+correctly classify the member.
 
 The addition of templates to `apidoc` addresses [Sphinx issue #3545][]. That is, it
 is now possible to have a list of members with short summaries at the top of the
@@ -77,6 +93,7 @@ for an example template. These render to e.g.
 [apidoc.py]: https://github.com/sphinx-doc/sphinx/blob/master/sphinx/apidoc.py
 [Stackoverflow]: http://stackoverflow.com/questions/29385564/customize-templates-for-sphinx-apidoc)
 [Jinja]: http://jinja.pocoo.org
+[`__imported_data__`]: https://github.com/mabuchilab/QNET/blob/4e637b18c53cbee598ed58c3b7f7820dd54216db/qnet/algebra/__init__.py#L56
 
 
 ## Usage ##
