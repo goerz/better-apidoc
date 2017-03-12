@@ -164,6 +164,20 @@ def _get_members(
     Returns:
         lists `public` and `items`. The lists contains the public and private +
         public  members, as strings.
+
+    Note:
+        For data members, there is no way to tell whether they were imported or
+        defined locally (without parsing the source code). A module may define
+        one or both attributes
+
+        __local_data__: list of names of data objects defined locally
+        __imported_data__: dict of names to ReST-formatted references of where
+            a data object originates
+
+        If either one of these attributes is present, the member will be
+        classified accordingly. Otherwise, it will be classified as local if it
+        appeard in the __all__ list, or as imported otherwise
+
     """
     roles = {'function': 'func', 'module': 'mod', 'class': 'class',
              'exception': 'exc', 'data': 'data'}
@@ -180,6 +194,18 @@ def _get_members(
         if hasattr(documenter, 'directivetype'):
             return roles[typ] == getattr(documenter, 'directivetype')
 
+    def is_local(obj, value, name):
+        """Check whether obj.value is defined locally in module obj"""
+        if hasattr(value, '__module__'):
+            return getattr(value, '__module__') == obj.__name__
+        else:
+            if hasattr(obj, '__local_data__'):
+                return name in getattr(obj, '__local_data__')
+            if hasattr(obj, '__imported_data__'):
+                return name not in getattr(obj, '__imported_data__')
+            else:
+                return name in getattr(obj, '__all__', [])
+
     if typ is not None and typ not in roles:
         raise ValueError("typ must be None or one of %s"
                          % str(list(roles.keys())))
@@ -194,12 +220,13 @@ def _get_members(
         if check_typ(typ, obj, value):
             if in__all__ and name not in all_list:
                 continue
-            if (include_imported or
-                    getattr(value, '__module__', None) == obj.__name__):
+            if include_imported or is_local(obj, value, name):
                 if as_refs:
                     documenter = get_documenter(value, obj)
                     role = roles.get(documenter.objtype, 'obj')
-                    ref = _get_member_ref_str(name, obj=value, role=role)
+                    ref = _get_member_ref_str(
+                            name, obj=value, role=role,
+                            known_refs=getattr(obj, '__imported_data__', None))
                     items.append(ref)
                     if not name.startswith('_'):
                         public.append(ref)
@@ -210,9 +237,12 @@ def _get_members(
     return public, items
 
 
-def _get_member_ref_str(name, obj, role='obj'):
+def _get_member_ref_str(name, obj, role='obj', known_refs=None):
     """generate a ReST-formmated reference link to the given `obj` of type
     `role`, using `name` as the link text"""
+    if known_refs is not None:
+        if name in known_refs:
+            return known_refs[name]
     if hasattr(obj, '__name__'):
         try:
             ref = obj.__module__ + '.' + obj.__name__
