@@ -146,11 +146,11 @@ def create_module_file(package, module, opts):
 
 
 def _get_members(
-        obj, typ=None, include_imported=False, as_refs=False, in__all__=False):
-    """Get (filtered) public/total members of the module or package `obj`.
+        mod, typ=None, include_imported=False, as_refs=False, in__all__=False):
+    """Get (filtered) public/total members of the module or package `mod`.
 
     Args:
-        obj: object resulting from importing a module or package
+        mod: object resulting from importing a module or package
         typ: filter on members. If None, include all members. If one of
             'function', 'class', 'exception', 'data', only include members of
             the matching type
@@ -159,7 +159,7 @@ def _get_members(
             members, instead of just their names. In combinations with
             `include_imported` or `in__all__`, these link to the original
             location where the member is defined
-        in__all__: If True, return only members that are in ``obj.__all__``
+        in__all__: If True, return only members that are in ``mod.__all__``
 
     Returns:
         lists `public` and `items`. The lists contains the public and private +
@@ -184,9 +184,9 @@ def _get_members(
     # not included, because they cannot occur at modul level:
     #   'method': 'meth', 'attribute': 'attr', 'instanceattribute': 'attr'
 
-    def check_typ(typ, obj, value):
-        """Check if obj.value is of the desired typ"""
-        documenter = get_documenter(value, obj)
+    def check_typ(typ, mod, member):
+        """Check if mod.member is of the desired typ"""
+        documenter = get_documenter(member, mod)
         if typ is None:
             return True
         if typ == getattr(documenter, 'objtype', None):
@@ -194,39 +194,40 @@ def _get_members(
         if hasattr(documenter, 'directivetype'):
             return roles[typ] == getattr(documenter, 'directivetype')
 
-    def is_local(obj, value, name):
-        """Check whether obj.value is defined locally in module obj"""
-        if hasattr(value, '__module__'):
-            return getattr(value, '__module__') == obj.__name__
+    def is_local(mod, member, name):
+        """Check whether mod.member is defined locally in module mod"""
+        if hasattr(member, '__module__'):
+            return getattr(member, '__module__') == mod.__name__
         else:
-            if hasattr(obj, '__local_data__'):
-                return name in getattr(obj, '__local_data__')
-            if hasattr(obj, '__imported_data__'):
-                return name not in getattr(obj, '__imported_data__')
+            # we take missing __module__ to mean the member is a data object
+            if hasattr(mod, '__local_data__'):
+                return name in getattr(mod, '__local_data__')
+            if hasattr(mod, '__imported_data__'):
+                return name not in getattr(mod, '__imported_data__')
             else:
-                return name in getattr(obj, '__all__', [])
+                return name in getattr(mod, '__all__', [])
 
     if typ is not None and typ not in roles:
         raise ValueError("typ must be None or one of %s"
                          % str(list(roles.keys())))
     items = []
     public = []
-    all_list = getattr(obj, '__all__', [])
-    for name in dir(obj):
+    all_list = getattr(mod, '__all__', [])
+    for name in dir(mod):
         try:
-            value = safe_getattr(obj, name)
+            member = safe_getattr(mod, name)
         except AttributeError:
             continue
-        if check_typ(typ, obj, value):
+        if check_typ(typ, mod, member):
             if in__all__ and name not in all_list:
                 continue
-            if include_imported or is_local(obj, value, name):
+            if include_imported or is_local(mod, member, name):
                 if as_refs:
-                    documenter = get_documenter(value, obj)
+                    documenter = get_documenter(member, mod)
                     role = roles.get(documenter.objtype, 'obj')
                     ref = _get_member_ref_str(
-                            name, obj=value, role=role,
-                            known_refs=getattr(obj, '__imported_data__', None))
+                            name, obj=member, role=role,
+                            known_refs=getattr(mod, '__imported_data__', None))
                     items.append(ref)
                     if not name.startswith('_'):
                         public.append(ref)
@@ -266,15 +267,15 @@ def _get_mod_ns(name, fullname, includeprivate):
     p = 0
     if includeprivate:
         p = 1
-    obj = importlib.import_module(fullname)
-    ns['members'] = _get_members(obj)[p]
-    ns['functions'] = _get_members(obj, typ='function')[p]
-    ns['classes'] = _get_members(obj, typ='class')[p]
-    ns['exceptions'] = _get_members(obj, typ='exception')[p]
-    ns['all_refs'] = _get_members(obj, include_imported=True, in__all__=True, as_refs=True)[p]
-    ns['members_imports'] = _get_members(obj, include_imported=True)[p]
-    ns['members_imports_refs'] = _get_members(obj, include_imported=True, as_refs=True)[p]
-    ns['data'] = _get_members(obj, typ='data')[p]
+    mod = importlib.import_module(fullname)
+    ns['members'] = _get_members(mod)[p]
+    ns['functions'] = _get_members(mod, typ='function')[p]
+    ns['classes'] = _get_members(mod, typ='class')[p]
+    ns['exceptions'] = _get_members(mod, typ='exception')[p]
+    ns['all_refs'] = _get_members(mod, include_imported=True, in__all__=True, as_refs=True)[p]
+    ns['members_imports'] = _get_members(mod, include_imported=True)[p]
+    ns['members_imports_refs'] = _get_members(mod, include_imported=True, as_refs=True)[p]
+    ns['data'] = _get_members(mod, typ='data')[p]
     return ns
 
 
