@@ -22,12 +22,12 @@ This will install `better-apidoc` in the current environment's `bin` folder.
 
 ## Templating ##
 
-The `better-apidoc` script is a patched version of Sphinx' [apidoc.py][]. If
+The `better-apidoc` script is a patched version of Sphinx' [apidoc.py]. If
 well-received, I may try to have this patch merged back into Sphinx as an update
 to `sphinx-apidoc`.
 
 It adds the `-t/--templates` option to the script. If this option is not given,
-it is identical to `sphinx-apidoc`. With the option, [Jinja][]-based templates
+it is identical to `sphinx-apidoc`. With the option, [Jinja]-based templates
 are used for the generated ReST files. The template directory given via `-t`
 must contain the template files `module.rst` and `package.rst`.
 
@@ -71,15 +71,15 @@ conditions is met:
   module. This list is a custom convention of the `better-apidoc` script.
 
 In cases where a data member appears in `__all__` but is not locally defined,
-the module may define a dictionary [`__imported_data__`][] that maps the name of the
+the module may define a dictionary [`__imported_data__`] that maps the name of the
 data member of a ReST-formatted reference string for `better-apidoc` to
 correctly classify the member.
 
-The addition of templates to `apidoc` addresses [Sphinx issue #3545][]. That is, it
+The addition of templates to `apidoc` addresses [Sphinx issue #3545]. That is, it
 is now possible to have a list of members with short summaries at the top of the
 API documentation that links to the more detailed information below.
 It is also directly addresses the demand for this feature expressed on
-[Stackoverflow][].
+[Stackoverflow].
 
 See
 [package.rst](https://github.com/mabuchilab/QNET/blob/develop/docs/_templates/package.rst)
@@ -89,11 +89,11 @@ for an example template. These render to e.g.
 <http://qnet.readthedocs.io/en/latest/API/qnet.algebra.operator_algebra.html>
 
 
-[Sphinx issue #3545]: https://github.com/sphinx-doc/sphinx/issues/3545
 [apidoc.py]: https://github.com/sphinx-doc/sphinx/blob/master/sphinx/apidoc.py
-[Stackoverflow]: http://stackoverflow.com/questions/29385564/customize-templates-for-sphinx-apidoc)
 [Jinja]: http://jinja.pocoo.org
 [`__imported_data__`]: https://github.com/mabuchilab/QNET/blob/4e637b18c53cbee598ed58c3b7f7820dd54216db/qnet/algebra/__init__.py#L56
+[Sphinx issue #3545]: https://github.com/sphinx-doc/sphinx/issues/3545
+[Stackoverflow]: http://stackoverflow.com/questions/29385564/customize-templates-for-sphinx-apidoc
 
 
 ## Usage ##
@@ -109,7 +109,7 @@ You can also use this as a module `better_apidoc`, e.g. from the Sphinx
 
 ## License ##
 
-This software is available under the terms of the BSD license. See [LICENSE][]
+This software is available under the terms of the BSD license. See [LICENSE]
 for details.
 
 [LICENSE]: LICENSE
