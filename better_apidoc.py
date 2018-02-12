@@ -263,7 +263,7 @@ def _get_mod_ns(name, fullname, includeprivate):
         'name': name, 'fullname': fullname, 'members': [], 'functions': [],
         'classes': [], 'exceptions': [], 'subpackages': [], 'submodules': [],
         'all_refs': [], 'members_imports': [], 'members_imports_refs': [],
-        'data': []}
+        'data': [], 'doc':None}
     p = 0
     if includeprivate:
         p = 1
@@ -276,6 +276,7 @@ def _get_mod_ns(name, fullname, includeprivate):
     ns['members_imports'] = _get_members(mod, include_imported=True)[p]
     ns['members_imports_refs'] = _get_members(mod, include_imported=True, as_refs=True)[p]
     ns['data'] = _get_members(mod, typ='data')[p]
+    ns['doc'] = mod.__doc__
     return ns
 
 
