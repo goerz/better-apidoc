@@ -32,7 +32,10 @@ from jinja2.sandbox import SandboxedEnvironment
 
 from sphinx.util.osutil import FileAvoidWrite, walk
 #from sphinx import __display_version__
-from sphinx.cmd.quickstart import EXTENSIONS
+try:
+    from sphinx.cmd.quickstart import EXTENSIONS
+except ImportError:
+    from sphinx.quickstart import EXTENSIONS
 from sphinx.ext.autosummary import get_documenter
 from sphinx.util.inspect import safe_getattr
 
