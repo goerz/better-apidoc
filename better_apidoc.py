@@ -53,7 +53,7 @@ add_documenter(MethodDocumenter)
 add_documenter(AttributeDocumenter)
 add_documenter(InstanceAttributeDocumenter)
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 __display_version__ = __version__
 
 if False:
