@@ -1,5 +1,7 @@
 # better-apidoc #
 
+[![PyPI version](https://badge.fury.io/py/better-apidoc.svg)](https://badge.fury.io/py/better-apidoc)
+
 A version of [sphinx-apidoc][] with support for templating
 
 Author: Michael Goerz <<goerz@stanford.edu>>
