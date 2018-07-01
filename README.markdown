@@ -166,11 +166,11 @@ v0.1.4 (2018-03-24): support both Sphinx 1.6 and 1.7
 
 v0.2.0 (2018-07-01):
 
-    * make function `get_members` available to templates
-    * remove template variables *member_imports*, *members_imports_refs*, *all_refs*: their functionality is now achieved with `get_members`
-    * remove use of non-standard `__local_data__` and `__imported_data__` module attributes. These can still be used via the `in_list` argument of `get_members`.
-    * add capability to generate autosummary-like tables, via ``out_format='table'`` in `get_members` (but solving autosummary's problem of not generating links for imported members)
-    * **This release breaks templates written for v1.0.x**
+* make function `get_members` available to templates
+* remove template variables *member_imports*, *members_imports_refs*, *all_refs*: their functionality is now achieved with `get_members`
+* remove use of non-standard `__local_data__` and `__imported_data__` module attributes. These can still be used via the `in_list` argument of `get_members`.
+* add capability to generate autosummary-like tables, via ``out_format='table'`` in `get_members` (but solving autosummary's problem of not generating links for imported members)
+* **This release breaks templates written for v1.0.x**
 
 ## License ##
 
