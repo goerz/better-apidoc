@@ -50,13 +50,11 @@ The following variables are available in the templates:
 Furthermore, the function `get_members` is made available to the template:
 
     def get_members(
-            fullname, typ=None, include_imported=False, out_format='names',
+            typ=None, include_imported=False, out_format='names',
             in_list=None, includeprivate=opts.includeprivate, known_refs=None):
-        """Return a list of members
+        """Return a list of members of the current module
 
         Args:
-            fullname (str): The full name of the module for which to get the
-                members (including the dot-separated package path)
             typ (None or str): One of None, 'function', 'class', 'exception',
                 'data'. If not None, only members of the corresponding type
                  will be returned
