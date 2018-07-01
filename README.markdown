@@ -130,7 +130,7 @@ See
 and
 [module.rst](https://github.com/mabuchilab/QNET/blob/develop/docs/_templates/module.rst)
 for an example template. These render to e.g.
-<http://qnet.readthedocs.io/en/latest/API/qnet.algebra.operator_algebra.html>
+<https://qnet.readthedocs.io/en/latest/API/qnet.algebra.core.operator_algebra.html>
 
 
 [apidoc.py]: https://github.com/sphinx-doc/sphinx/blob/master/sphinx/apidoc.py
