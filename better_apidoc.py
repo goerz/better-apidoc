@@ -14,18 +14,24 @@
     It extends "sphinx-apidoc" by the --template / -t option, which allows to
     render the output ReST files based on arbitrary Jinja templates.
 
-    :copyright: Copyright 2017 by Michael Goerz
+    :copyright: Copyright 2017-2018 by Michael Goerz
     :license: BSD, see LICENSE for details.
 """
 from __future__ import print_function
 
 import os
 import sys
+import re
+import inspect
 import importlib
 import optparse
 from os import path
+from functools import partial
 from six import binary_type
 from fnmatch import fnmatch
+from docutils import nodes
+from docutils.parsers.rst.states import RSTStateMachine, state_classes
+from docutils.utils import new_document, Reporter as NullReporter
 
 from jinja2 import FileSystemLoader, TemplateNotFound
 from jinja2.sandbox import SandboxedEnvironment
@@ -38,6 +44,8 @@ except ImportError:
     from sphinx.quickstart import EXTENSIONS
 from sphinx.ext.autosummary import get_documenter
 from sphinx.util.inspect import safe_getattr
+
+periods_re = re.compile(r'\.(?:\s+)')
 
 # Add documenters to AutoDirective registry
 from sphinx.ext.autodoc import add_documenter, \
@@ -53,7 +61,7 @@ add_documenter(MethodDocumenter)
 add_documenter(AttributeDocumenter)
 add_documenter(InstanceAttributeDocumenter)
 
-__version__ = '0.1.4'
+__version__ = '0.2.0'
 __display_version__ = __version__
 
 if False:
@@ -145,50 +153,33 @@ def create_module_file(package, module, opts):
             text = template.render(**mod_ns)
         except ImportError as e:
             _warn('failed to import %r: %s' % (module, e))
+        add_get_members_to_template_env(template_env, module, opts)
     write_file(makename(package, module), text, opts)
 
 
 def _get_members(
-        mod, typ=None, include_imported=False, as_refs=False, in__all__=False):
+        mod, typ=None, include_imported=False, out_format='names',
+        in_list=None, known_refs=None):
     """Get (filtered) public/total members of the module or package `mod`.
 
-    Args:
-        mod: object resulting from importing a module or package
-        typ: filter on members. If None, include all members. If one of
-            'function', 'class', 'exception', 'data', only include members of
-            the matching type
-        include_imported: If True, also include members that are imports
-        as_refs: If True, return ReST-formatted reference strings for all
-            members, instead of just their names. In combinations with
-            `include_imported` or `in__all__`, these link to the original
-            location where the member is defined
-        in__all__: If True, return only members that are in ``mod.__all__``
 
     Returns:
         lists `public` and `items`. The lists contains the public and private +
-        public  members, as strings.
-
-    Note:
-        For data members, there is no way to tell whether they were imported or
-        defined locally (without parsing the source code). A module may define
-        one or both attributes
-
-        __local_data__: list of names of data objects defined locally
-        __imported_data__: dict of names to ReST-formatted references of where
-            a data object originates
-
-        If either one of these attributes is present, the member will be
-        classified accordingly. Otherwise, it will be classified as local if it
-        appeard in the __all__ list, or as imported otherwise
-
+        public members, as strings.
     """
     roles = {'function': 'func', 'module': 'mod', 'class': 'class',
              'exception': 'exc', 'data': 'data'}
     # not included, because they cannot occur at modul level:
     #   'method': 'meth', 'attribute': 'attr', 'instanceattribute': 'attr'
 
+    out_formats = ['names', 'fullnames', 'refs', 'table']
+    if out_format not in out_formats:
+        raise ValueError("out_format %s not in %r" % (out_format, out_formats))
+
     def check_typ(typ, mod, member):
         """Check if mod.member is of the desired typ"""
+        if inspect.ismodule(member):
+            return False
         documenter = get_documenter(member, mod)
         if typ is None:
             return True
@@ -203,42 +194,122 @@ def _get_members(
             return getattr(member, '__module__') == mod.__name__
         else:
             # we take missing __module__ to mean the member is a data object
-            if hasattr(mod, '__local_data__'):
-                return name in getattr(mod, '__local_data__')
-            if hasattr(mod, '__imported_data__'):
-                return name not in getattr(mod, '__imported_data__')
-            else:
-                return name in getattr(mod, '__all__', [])
+            # it is recommended to filter data by e.g. __all__
+            return True
 
     if typ is not None and typ not in roles:
         raise ValueError("typ must be None or one of %s"
                          % str(list(roles.keys())))
     items = []
     public = []
-    all_list = getattr(mod, '__all__', [])
+    if known_refs is None:
+        known_refs = {}
+    elif isinstance(known_refs, str):
+        known_refs = getattr(mod, known_refs)
+    if in_list is not None:
+        try:
+            in_list = getattr(mod, in_list)
+        except AttributeError:
+            in_list = []
     for name in dir(mod):
+        if name.startswith('__'):
+            continue
         try:
             member = safe_getattr(mod, name)
         except AttributeError:
             continue
         if check_typ(typ, mod, member):
-            if in__all__ and name not in all_list:
+            if in_list is not None:
+                if name not in in_list:
+                    continue
+            if not (include_imported or is_local(mod, member, name)):
                 continue
-            if include_imported or is_local(mod, member, name):
-                if as_refs:
-                    documenter = get_documenter(member, mod)
-                    role = roles.get(documenter.objtype, 'obj')
-                    ref = _get_member_ref_str(
-                            name, obj=member, role=role,
-                            known_refs=getattr(mod, '__imported_data__', None))
-                    items.append(ref)
-                    if not name.startswith('_'):
-                        public.append(ref)
-                else:
-                    items.append(name)
-                    if not name.startswith('_'):
-                        public.append(name)
-    return public, items
+            if out_format in ['table', 'refs']:
+                documenter = get_documenter(member, mod)
+                role = roles.get(documenter.objtype, 'obj')
+                ref = _get_member_ref_str(
+                        name, obj=member, role=role,
+                        known_refs=known_refs)
+            if out_format == 'table':
+                docsummary = extract_summary(member)
+                items.append((ref, docsummary))
+                if not name.startswith('_'):
+                    public.append((ref, docsummary))
+            elif out_format == 'refs':
+                items.append(ref)
+                if not name.startswith('_'):
+                    public.append(ref)
+            elif out_format == 'fullnames':
+                fullname = _get_fullname(name, obj=member)
+                items.append(fullname)
+                if not name.startswith('_'):
+                    public.append(fullname)
+            else:
+                assert out_format == 'names', str(out_format)
+                items.append(name)
+                if not name.startswith('_'):
+                    public.append(name)
+    if out_format == 'table':
+        return _assemble_table(public), _assemble_table(items)
+    else:
+        return public, items
+
+
+def _assemble_table(rows):
+    if len(rows) == 0:
+        return ''
+    lines = []
+    lines.append('.. list-table::')
+    lines.append('')
+    for row in rows:
+        lines.append('   * - %s' % row[0])
+        for col in row[1:]:
+            lines.append('     - %s' % col)
+    lines.append('')
+    return lines
+
+
+def extract_summary(obj):
+    # type: (List[unicode], Any) -> unicode
+    """Extract summary from docstring."""
+
+    try:
+        doc = inspect.getdoc(obj).split("\n")
+    except AttributeError:
+        doc = ''
+
+    # Skip a blank lines at the top
+    while doc and not doc[0].strip():
+        doc.pop(0)
+
+    # If there's a blank line, then we can assume the first sentence /
+    # paragraph has ended, so anything after shouldn't be part of the
+    # summary
+    for i, piece in enumerate(doc):
+        if not piece.strip():
+            doc = doc[:i]
+            break
+
+    # Try to find the "first sentence", which may span multiple lines
+    sentences = periods_re.split(" ".join(doc))  # type: ignore
+    if len(sentences) == 1:
+        summary = sentences[0].strip()
+    else:
+        summary = ''
+        state_machine = RSTStateMachine(state_classes, 'Body')
+        while sentences:
+            summary += sentences.pop(0) + '.'
+            node = new_document('')
+            node.reporter = NullReporter('', 999, 4)
+            node.settings.pep_references = None
+            node.settings.rfc_references = None
+            state_machine.run([summary], node)
+            if not node.traverse(nodes.system_message):
+                # considered as that splitting by period does not break inline
+                # markups
+                break
+
+    return summary
 
 
 def _get_member_ref_str(name, obj, role='obj', known_refs=None):
@@ -247,7 +318,19 @@ def _get_member_ref_str(name, obj, role='obj', known_refs=None):
     if known_refs is not None:
         if name in known_refs:
             return known_refs[name]
-    if hasattr(obj, '__name__'):
+    ref = _get_fullname(name, obj)
+    return ":%s:`%s <%s>`" % (role, name, ref)
+
+
+def _get_fullname(name, obj):
+    if hasattr(obj, '__qualname__'):
+        try:
+            ref = obj.__module__ + '.' + obj.__qualname__
+        except AttributeError:
+            ref = obj.__name__
+        except TypeError:  # e.g. obj.__name__ is None
+            ref = name
+    elif hasattr(obj, '__name__'):
         try:
             ref = obj.__module__ + '.' + obj.__name__
         except AttributeError:
@@ -256,7 +339,7 @@ def _get_member_ref_str(name, obj, role='obj', known_refs=None):
             ref = name
     else:
         ref = name
-    return ":%s:`%s <%s>`" % (role, name, ref)
+    return ref
 
 
 def _get_mod_ns(name, fullname, includeprivate):
@@ -265,8 +348,7 @@ def _get_mod_ns(name, fullname, includeprivate):
     ns = {  # template variables
         'name': name, 'fullname': fullname, 'members': [], 'functions': [],
         'classes': [], 'exceptions': [], 'subpackages': [], 'submodules': [],
-        'all_refs': [], 'members_imports': [], 'members_imports_refs': [],
-        'data': [], 'doc':None}
+        'doc': None}
     p = 0
     if includeprivate:
         p = 1
@@ -275,12 +357,77 @@ def _get_mod_ns(name, fullname, includeprivate):
     ns['functions'] = _get_members(mod, typ='function')[p]
     ns['classes'] = _get_members(mod, typ='class')[p]
     ns['exceptions'] = _get_members(mod, typ='exception')[p]
-    ns['all_refs'] = _get_members(mod, include_imported=True, in__all__=True, as_refs=True)[p]
-    ns['members_imports'] = _get_members(mod, include_imported=True)[p]
-    ns['members_imports_refs'] = _get_members(mod, include_imported=True, as_refs=True)[p]
     ns['data'] = _get_members(mod, typ='data')[p]
     ns['doc'] = mod.__doc__
     return ns
+
+
+def add_get_members_to_template_env(template_env, fullname, opts):
+
+    def get_members(
+            fullname, typ=None, include_imported=False, out_format='names',
+            in_list=None, includeprivate=opts.includeprivate, known_refs=None):
+        """Return a list of members
+
+        Args:
+            fullname (str): The full name of the module for which to get the
+                members (including the dot-separated package path)
+            typ (None or str): One of None, 'function', 'class', 'exception',
+                'data'. If not None, only members of the corresponding type
+                 will be returned
+            include_imported (bool): If True, include members that are imported
+                from other modules. If False, only return members that are
+                defined directly in the module.
+            out_format (str): One of 'names', 'fullnames', 'refs', and 'table'
+            in_list (None or str): If not None, name of a module
+                attribute (e.g. '__all__'). Only members whose names appears in
+                the list will be returned.
+            includeprivate (bool): If True, include members whose names starts
+                with an underscore
+            know_refs (None or dict or str): If not None, a mapping of names to
+                rull rst-formatted references. If given as a str, the mapping
+                will be taken from the module attribute of the given name. This
+                is used only in conjunction with ``out_format=refs``, to
+                override automatically detected reference location, or to
+                provide references for object that cannot be located
+                automatically (data objects).
+
+        Returns:
+            list: List of strings, depending on `out_format`.
+
+            If 'names' (default), return a list of the simple names of all
+            members.
+
+            If 'fullnames', return a list of the fully qualified names
+            of the members.
+
+            If 'refs', return a list of rst-formatted links.
+
+            If 'table', return a list of lines for a rst table similar to that
+            generated by the autosummary plugin (left column is linked member
+            names, right column is first sentence of the docstring)
+
+
+        Note:
+            For data members, it is not always possible to determine whther
+            they are imported or defined locally. In this case, `in_list` and
+            `known_refs` may be used to achieve the desired result.
+
+            If using ``in_list='__all__'`` for a package you may also have to
+            use ``include_imported=True`` to get the full list (as packages
+            typically export members imported from their sub-modules)
+        """
+        mod = importlib.import_module(fullname)
+        p = 0
+        if includeprivate:
+            p = 1
+        members = _get_members(
+            mod, typ=typ, include_imported=include_imported,
+            out_format=out_format, in_list=in_list, known_refs=known_refs)[p]
+        return members
+
+    template_env.globals['get_members'] = partial(
+        get_members, fullname=fullname)
 
 
 def create_package_file(root, master_package, subroot, py_files, opts, subs, is_namespace):
@@ -288,12 +435,12 @@ def create_package_file(root, master_package, subroot, py_files, opts, subs, is_
     """Build the text of the file and write the file."""
 
     use_templates = False
+    fullname = makename(master_package, subroot)
+
     if opts.templates:
         use_templates = True
         template_loader = FileSystemLoader(opts.templates)
         template_env = SandboxedEnvironment(loader=template_loader)
-
-    fullname = makename(master_package, subroot)
 
     text = format_heading(
         1, ('%s package' if not is_namespace else "%s namespace") % fullname)
@@ -346,6 +493,8 @@ def create_package_file(root, master_package, subroot, py_files, opts, subs, is_
                             name=submod, fullname=modfile,
                             includeprivate=opts.includeprivate)
                         template = template_env.get_template('module.rst')
+                        add_get_members_to_template_env(
+                            template_env, modfile, opts)
                         filetext = template.render(**mod_ns)
                     except ImportError as e:
                         _warn('failed to import %r: %s' % (modfile, e))
@@ -362,6 +511,7 @@ def create_package_file(root, master_package, subroot, py_files, opts, subs, is_
 
     if use_templates:
         template = template_env.get_template('package.rst')
+        add_get_members_to_template_env(template_env, fullname, opts)
         text = template.render(**package_ns)
     else:
         if not opts.modulefirst and not is_namespace:
