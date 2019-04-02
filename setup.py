@@ -20,7 +20,7 @@ setuptools.setup(
     install_requires=[
         'sphinx', 'jinja2'
     ],
-    extras_require={'dev': ['pytest',]},
+    extras_require={'dev': ['pytest', ]},
     py_modules=['better_apidoc'],
     entry_points='''
         [console_scripts]

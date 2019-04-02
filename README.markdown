@@ -173,7 +173,6 @@ For an full example, see the [`conf.py` file of the krotov project][krotovconf]
 
 [krotovconf]: https://github.com/qucontrol/krotov/blob/master/docs/conf.py
 [srcdir]: https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure
-[issue14]: https://github.com/goerz/better-apidoc/issues/14
 
 ## History ##
 
@@ -194,6 +193,10 @@ v0.2.0 (2018-07-01):
 * remove use of non-standard `__local_data__` and `__imported_data__` module attributes. These can still be used via the `in_list` argument of `get_members`.
 * add capability to generate autosummary-like tables, via ``out_format='table'`` in `get_members` (but solving autosummary's problem of not generating links for imported members)
 * **This release breaks templates written for v0.1.x**
+
+v0.3.0 (2019-04-02): Adapt to changes in Sphinx 1.8 ([#14][issue14]). As a result, `sphinx-apidoc` can no longer run as a standalone script, but must be called from inside `conf.py`.
+
+[issue14]: https://github.com/goerz/better-apidoc/issues/14
 
 ## License ##
 

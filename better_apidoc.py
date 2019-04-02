@@ -50,7 +50,7 @@ APP = None
 
 periods_re = re.compile(r'\.(?:\s+)')
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __display_version__ = __version__
 
 if False:
