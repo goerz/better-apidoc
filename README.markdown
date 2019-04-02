@@ -24,14 +24,13 @@ This will install `better-apidoc` in the current environment's `bin` folder.
 
 ## Templating ##
 
-The `better-apidoc` script is a patched version of Sphinx' [apidoc.py]. If
-well-received, I may try to have this patch merged back into Sphinx as an update
-to `sphinx-apidoc`.
+The `better-apidoc` script is a patched version of Sphinx' [apidoc.py].
+~If well-received, I may try to have this patch merged back into Sphinx as an update to `sphinx-apidoc`.~
 
-It adds the `-t/--templates` option to the script. If this option is not given,
-it is identical to `sphinx-apidoc`. With the option, [Jinja]-based templates
-are used for the generated ReST files. The template directory given via `-t`
-must contain the template files `module.rst` and `package.rst`.
+**Note:** Due to changes in Sphinx 1.8, `better-apdic` can no longer run as a script from the command line, and must be run from inside `conf.py`, see "Usage" below. Ultimately, it will be necessary to refactor `better-apidoc` into an proper Sphinx extension (instead of a script).
+
+Fundamentally, `better-apidoc` adds the `-t/--templates` option to the script.  If this option is not given, it is identical to `sphinx-apidoc`. With the option, [Jinja]-based templates are used for the generated ReST files. The template directory given via `-t` must contain the template files `module.rst` and `package.rst`.
+
 
 The following variables are available in the templates:
 
@@ -142,13 +141,39 @@ for an example template. These render to e.g.
 
 ## Usage ##
 
-See `better-apidoc -h`
+Due to [changes in Sphinx 1.8][issue14], `better_apidoc` can no longer be run as an independent script. Instead, it must be set up in Sphinx's `conf.py`. In `conf.py`, define a function like this:
 
-You can also use this as a module `better_apidoc`, e.g. from the Sphinx
-`conf.py` file to automate the generation of API files. For an example, see the
-[`conf.py` file of the QNET project][QNETconf]
+    def run_apidoc(app):
+        """Generage API documentation"""
+        import better_apidoc
+        better_apidoc.APP = app
+        better_apidoc.main([
+            'better-apidoc',
+            '-t',
+            os.path.join('.', '_templates'),
+            '--force',
+            '--no-toc',
+            '--separate',
+            '-o',
+            os.path.join('.', 'API'),
+            os.path.join('..', 'src', 'krotov'),
+        ])
 
-[QNETconf]: https://github.com/mabuchilab/QNET/blob/8cb1775396b1ceab69a498001cef33d063344f9d/docs/conf.py#L35
+You will have to adjust the last two lines: `os.path.join('.', 'API')` is the location relative to `conf.py` where the API rst files should be generated. In the last line, `os.path.join('..', 'src', 'krotov')` is the location of the package code (I strongly advocate the [use of a `src` directory][srcdir]).
+
+Then, at the end of `conf.py`, add the following code:
+
+    def setup(app):
+        app.connect('builder-inited', run_apidoc)
+
+
+
+
+For an full example, see the [`conf.py` file of the krotov project][krotovconf]
+
+[krotovconf]: https://github.com/qucontrol/krotov/blob/master/docs/conf.py
+[srcdir]: https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure
+[issue14]: https://github.com/goerz/better-apidoc/issues/14
 
 ## History ##
 

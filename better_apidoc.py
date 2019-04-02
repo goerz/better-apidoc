@@ -45,21 +45,10 @@ except ImportError:
 from sphinx.ext.autosummary import get_documenter
 from sphinx.util.inspect import safe_getattr
 
-periods_re = re.compile(r'\.(?:\s+)')
+# App must be set before calling main()
+APP = None
 
-# Add documenters to AutoDirective registry
-from sphinx.ext.autodoc import add_documenter, \
-    ModuleDocumenter, ClassDocumenter, ExceptionDocumenter, DataDocumenter, \
-    FunctionDocumenter, MethodDocumenter, AttributeDocumenter, \
-    InstanceAttributeDocumenter
-add_documenter(ModuleDocumenter)
-add_documenter(ClassDocumenter)
-add_documenter(ExceptionDocumenter)
-add_documenter(DataDocumenter)
-add_documenter(FunctionDocumenter)
-add_documenter(MethodDocumenter)
-add_documenter(AttributeDocumenter)
-add_documenter(InstanceAttributeDocumenter)
+periods_re = re.compile(r'\.(?:\s+)')
 
 __version__ = '0.2.0'
 __display_version__ = __version__
@@ -67,6 +56,7 @@ __display_version__ = __version__
 if False:
     # For type annotation
     from typing import Any, List, Tuple  # NOQA
+
 
 # automodule options
 if 'SPHINX_APIDOC_OPTIONS' in os.environ:
@@ -180,7 +170,7 @@ def _get_members(
         """Check if mod.member is of the desired typ"""
         if inspect.ismodule(member):
             return False
-        documenter = get_documenter(member, mod)
+        documenter = get_documenter(app=APP, obj=member, parent=mod)
         if typ is None:
             return True
         if typ == getattr(documenter, 'objtype', None):
@@ -225,7 +215,7 @@ def _get_members(
             if not (include_imported or is_local(mod, member, name)):
                 continue
             if out_format in ['table', 'refs']:
-                documenter = get_documenter(member, mod)
+                documenter = get_documenter(app=APP, obj=member, parent=mod)
                 role = roles.get(documenter.objtype, 'obj')
                 ref = _get_member_ref_str(
                         name, obj=member, role=role,
