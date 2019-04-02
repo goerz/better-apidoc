@@ -10,12 +10,12 @@ uninstall:
 	pip uninstall better_apidoc
 
 upload:
-	python setup.py register
-	python setup.py sdist upload
+	python setup.py sdist
+	twine upload dist/*
 
 test-upload:
-	python setup.py register -r $(TESTPYPI)
-	python setup.py sdist upload -r $(TESTPYPI)
+	python setup.py sdist
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 test-install:
 	pip install -i $(TESTPYPI) better-apidoc
@@ -23,5 +23,7 @@ test-install:
 clean:
 	@rm -rf __pycache__
 	@rm -rf *.egg-info
+	@rm -rf dist
+	@rm -rf build
 
 .PHONY: install develop uninstall upload test-upload test-install clean
