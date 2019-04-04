@@ -147,6 +147,16 @@ def create_module_file(package, module, opts):
     write_file(makename(package, module), text, opts)
 
 
+def _get_documenter(app, member, mod):
+    try:  # Sphinx >= 2.0
+        return get_documenter(app=app, obj=member, parent=mod)
+    except TypeError:  # Sphinx < 2.0 does not accept kwargs
+        try:  # Sphinx 1.7, 1.8
+            return get_documenter(app, member, mod)
+        except (TypeError, ValueError):  # Sphinx < 1.7
+            return get_documenter(member, mod)
+
+
 def _get_members(
         mod, typ=None, include_imported=False, out_format='names',
         in_list=None, known_refs=None):
@@ -170,7 +180,7 @@ def _get_members(
         """Check if mod.member is of the desired typ"""
         if inspect.ismodule(member):
             return False
-        documenter = get_documenter(app=APP, obj=member, parent=mod)
+        documenter = _get_documenter(APP, member, mod)
         if typ is None:
             return True
         if typ == getattr(documenter, 'objtype', None):
@@ -215,7 +225,7 @@ def _get_members(
             if not (include_imported or is_local(mod, member, name)):
                 continue
             if out_format in ['table', 'refs']:
-                documenter = get_documenter(app=APP, obj=member, parent=mod)
+                documenter = _get_documenter(APP, member, mod)
                 role = roles.get(documenter.objtype, 'obj')
                 ref = _get_member_ref_str(
                         name, obj=member, role=role,
