@@ -196,6 +196,9 @@ v0.2.0 (2018-07-01):
 
 v0.3.0 (2019-04-02): Adapt to changes in Sphinx 1.8 ([#14][issue14]). As a result, `sphinx-apidoc` can no longer run as a standalone script, but must be called from inside `conf.py`.
 
+v0.3.1 (2019-04-04): Fix calls to Sphinx's `get_documenter` function to work for any version of version of Sphinx (tested on 1.6-2.0)
+
+
 [issue14]: https://github.com/goerz/better-apidoc/issues/14
 
 ## License ##
