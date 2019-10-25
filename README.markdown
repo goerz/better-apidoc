@@ -24,10 +24,9 @@ This will install `better-apidoc` in the current environment's `bin` folder.
 
 ## Templating ##
 
-The `better-apidoc` script is a patched version of Sphinx' [apidoc.py].
-~If well-received, I may try to have this patch merged back into Sphinx as an update to `sphinx-apidoc`.~
+The `better-apidoc` script is a patched version of Sphinx' [apidoc.py]. After a lengthy gestation period, it is on track to be merged back into [apidoc.py]: https://github.com/sphinx-doc/sphinx/pull/6768
 
-**Note:** Due to changes in Sphinx 1.8, `better-apdic` can no longer run as a script from the command line, and must be run from inside `conf.py`, see "Usage" below. Ultimately, it will be necessary to refactor `better-apidoc` into an proper Sphinx extension (instead of a script).
+**Note:** Due to changes in Sphinx 1.8, `better-apdic` in its current form can no longer run as a script from the command line, and must be run from inside `conf.py`, see "Usage" below.
 
 Fundamentally, `better-apidoc` adds the `-t/--templates` option to the script.  If this option is not given, it is identical to `sphinx-apidoc`. With the option, [Jinja]-based templates are used for the generated ReST files. The template directory given via `-t` must contain the template files `module.rst` and `package.rst`.
 
