@@ -25,7 +25,7 @@ import re
 import inspect
 import importlib
 import optparse
-from os import path
+from os import path, walk
 from functools import partial
 from six import binary_type
 from fnmatch import fnmatch
@@ -36,7 +36,7 @@ from docutils.utils import new_document, Reporter as NullReporter
 from jinja2 import FileSystemLoader, TemplateNotFound
 from jinja2.sandbox import SandboxedEnvironment
 
-from sphinx.util.osutil import FileAvoidWrite, walk
+from sphinx.util.osutil import FileAvoidWrite
 #from sphinx import __display_version__
 try:
     from sphinx.cmd.quickstart import EXTENSIONS
