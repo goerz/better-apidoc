@@ -49,7 +49,7 @@ APP = None
 
 periods_re = re.compile(r'\.(?:\s+)')
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 __display_version__ = __version__
 
 try:

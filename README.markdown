@@ -197,8 +197,11 @@ v0.3.0 (2019-04-02): Adapt to changes in Sphinx 1.8 ([#14][issue14]). As a resul
 
 v0.3.1 (2019-04-04): Fix calls to Sphinx's `get_documenter` function to work for any version of version of Sphinx (tested on 1.6-2.0)
 
+v0.3.2 (2021-05-10): Compatibility update for Sphinx 4.0 ([#17][issue17])
+
 
 [issue14]: https://github.com/goerz/better-apidoc/issues/14
+[issue17]: https://github.com/goerz/better-apidoc/issues/17
 
 ## License ##
 
