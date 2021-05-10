@@ -37,7 +37,6 @@ from jinja2 import FileSystemLoader, TemplateNotFound
 from jinja2.sandbox import SandboxedEnvironment
 
 from sphinx.util.osutil import FileAvoidWrite
-#from sphinx import __display_version__
 try:
     from sphinx.cmd.quickstart import EXTENSIONS
 except ImportError:
@@ -53,9 +52,11 @@ periods_re = re.compile(r'\.(?:\s+)')
 __version__ = '0.3.1'
 __display_version__ = __version__
 
-if False:
+try:
     # For type annotation
     from typing import Any, List, Tuple  # NOQA
+except ImportError:
+    pass
 
 
 # automodule options
@@ -200,8 +201,10 @@ def _get_members(
     if typ is not None and typ not in roles:
         raise ValueError("typ must be None or one of %s"
                          % str(list(roles.keys())))
-    items = []
-    public = []
+    items = []  # type: List[str]
+    public = []  # type: List[str]
+    item_table_tuples = []  # type: List[Tuple[str, str]]
+    public_table_tuples = []  # type: List[Tuple[str, str]]
     if known_refs is None:
         known_refs = {}
     elif isinstance(known_refs, str):
@@ -232,9 +235,9 @@ def _get_members(
                         known_refs=known_refs)
             if out_format == 'table':
                 docsummary = extract_summary(member)
-                items.append((ref, docsummary))
+                item_table_tuples.append((ref, docsummary))
                 if not name.startswith('_'):
-                    public.append((ref, docsummary))
+                    public_table_tuples.append((ref, docsummary))
             elif out_format == 'refs':
                 items.append(ref)
                 if not name.startswith('_'):
@@ -250,12 +253,13 @@ def _get_members(
                 if not name.startswith('_'):
                     public.append(name)
     if out_format == 'table':
-        return _assemble_table(public), _assemble_table(items)
+        return (_assemble_table(public_table_tuples),
+                _assemble_table(item_table_tuples))
     else:
         return public, items
 
 
-def _assemble_table(rows):
+def _assemble_table(rows: List[str]) -> List[str]:
     if len(rows) == 0:
         return ''
     lines = []
